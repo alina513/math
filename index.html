@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Перетягування символів</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+      .input-container {
+        margin-bottom: 10px;
+      }
+      .output {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        padding: 10px;
+        border: 1px solid #ccc;
+      }
+      .char {
+        padding: 5px;
+        cursor: grab;
+        border: 1px solid transparent;
+        user-select: none;
+        position: relative;
+      }
+      .selected {
+        background-color: yellow;
+      }
+      .dragging {
+        position: absolute;
+        cursor: grabbing;
+        opacity: 0.7;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="input-container">
+      <input type="text" id="textInput" placeholder="Введіть текст" />
+      <button onclick="displayText()">Показати</button>
+    </div>
+    <div id="output" class="output"></div>
+
+    <script>
+      let selectedChars = new Set();
+      let draggingElement = null;
+      let offsetX = 0,
+        offsetY = 0;
+
+      function displayText() {
+        const input = document.getElementById("textInput").value;
+        const output = document.getElementById("output");
+        output.innerHTML = "";
+
+        input.split("").forEach((char, index) => {
+          const span = document.createElement("span");
+          span.textContent = char;
+          span.classList.add("char");
+          span.dataset.index = index;
+
+          span.addEventListener("click", (event) => selectChar(event, span));
+          span.addEventListener("mousedown", (event) => dragStart(event, span));
+
+          output.appendChild(span);
+        });
+      }
+
+      function selectChar(event, span) {
+        if (event.ctrlKey) {
+          span.classList.toggle("selected");
+          if (selectedChars.has(span)) {
+            selectedChars.delete(span);
+          } else {
+            selectedChars.add(span);
+          }
+        }
+      }
+
+      function dragStart(event, span) {
+        event.preventDefault();
+        draggingElement = span.cloneNode(true);
+        draggingElement.classList.add("dragging");
+
+        document.body.appendChild(draggingElement);
+
+        offsetX = event.clientX - span.getBoundingClientRect().left;
+        offsetY = event.clientY - span.getBoundingClientRect().top;
+
+        moveAt(event.pageX, event.pageY);
+
+        document.addEventListener("mousemove", dragMove);
+        document.addEventListener("mouseup", dragEnd);
+      }
+
+      function moveAt(pageX, pageY) {
+        draggingElement.style.left = `${pageX - offsetX}px`;
+        draggingElement.style.top = `${pageY - offsetY}px`;
+      }
+
+      function dragMove(event) {
+        if (!draggingElement) return;
+        moveAt(event.pageX, event.pageY);
+      }
+
+      function dragEnd(event) {
+        if (!draggingElement) return;
+
+        const targetElement = document.elementFromPoint(
+          event.clientX,
+          event.clientY
+        );
+        const output = document.getElementById("output");
+
+        if (targetElement && targetElement.classList.contains("char")) {
+          const newIndex = [...output.children].indexOf(targetElement);
+          output.insertBefore(
+            draggingElement.cloneNode(true),
+            output.children[newIndex]
+          );
+        } else {
+          output.appendChild(draggingElement.cloneNode(true));
+        }
+
+        document.body.removeChild(draggingElement);
+        draggingElement = null;
+
+        document.removeEventListener("mousemove", dragMove);
+        document.removeEventListener("mouseup", dragEnd);
+      }
+    </script>
+  </body>
+</html>
